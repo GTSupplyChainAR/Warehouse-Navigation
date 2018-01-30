@@ -103,11 +103,5 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-
-### Custom
-
-# Conda
-cenv/
-
 # PyCharm
 .idea/

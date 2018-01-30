@@ -1,5 +1,10 @@
-flask
-networkx
-typing
-matplotlib
-gunicorn
+click==6.7
+decorator==4.2.1
+Flask==0.12.2
+gunicorn==19.7.1
+itsdangerous==0.24
+Jinja2==2.10
+MarkupSafe==1.0
+networkx==2.1
+typing==3.6.4
+Werkzeug==0.14.1
