@@ -55,9 +55,9 @@ const GridCellTypeEnum = Object.freeze({
     Navigable: 1,
     Shelving: 2,
 
-    PartOfPath: 3,
-    Source: 4,
-    Destination: 5,
+    PathIntermediate: 3,
+    PathSource: 4,
+    PathDestination: 5,
 });
 
 function GridWarehouse(warehouseId) {
@@ -98,11 +98,26 @@ function GridWarehouse(warehouseId) {
         }).done(function (data) {
             var path = JSON.parse(data);
             _this.lastPath = path;
-        })
 
-    }
+            for (var i = 0; i < _this.lastPath.length; i++) {
+                var pathCell = _this.lastPath[i];
 
-    this.d3Render = function () {
+                var cellType;
+
+                if (i === 0) {
+                    cellType = GridCellTypeEnum.PathSource;
+                } else if (i === _this.lastPath.length - 1) {
+                    cellType = GridCellTypeEnum.PathDestination;
+                } else {
+                    cellType = GridCellTypeEnum.PathIntermediate;
+                }
+
+                _this.grid[pathCell[0]][pathCell[1]] = cellType;
+            }
+        });
+    };
+
+    this.render = function () {
 // height, width
             var cellDimensions = [50, 50];
 
@@ -188,11 +203,17 @@ function GridWarehouse(warehouseId) {
                             return "#d9d9d9";
                         case GridCellTypeEnum.Shelving:
                             return "#676767";
+                        case GridCellTypeEnum.PathSource:
+                            return "#7eff00";
+                        case GridCellTypeEnum.PathIntermediate:
+                            return "#00cbff";
+                        case GridCellTypeEnum.PathDestination:
+                            return "#ff2b00";
 
                     }
                 })
                 .style("stroke", "#222");
-    }
+    };
 }
 
 var gridWarehouse;
@@ -201,6 +222,14 @@ $(document).ready(function () {
     gridWarehouse = new GridWarehouse('larger');
     gridWarehouse
         .loadWarehouse()
-        .then(gridWarehouse.d3Render);
+        .then(function () {
+            gridWarehouse.render();
+
+            gridWarehouse.findPath([0, 0], [3, 3])
+                .then(function () {
+                gridWarehouse.render();
+            });
+
+        });
 
 });
