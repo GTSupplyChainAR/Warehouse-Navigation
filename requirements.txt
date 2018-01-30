@@ -1,0 +1,5 @@
+flask
+networkx
+typing
+matplotlib
+gunicorn
