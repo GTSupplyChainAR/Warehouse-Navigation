@@ -17,3 +17,7 @@
 .destination-cell {
     fill: #ff2b00;
 }
+
+.path-item-to-pick-up-cell {
+    fill: #fff600;
+}

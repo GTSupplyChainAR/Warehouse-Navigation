@@ -23,6 +23,15 @@ function arraysEqual(a, b) {
     return true;
 }
 
+function arrayContains(array, element, equalityMethod) {
+    for (var i = 0; i < array.length; i++) {
+        if (equalityMethod(array[i], element)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function initializeGrid(dimensions, defaultData) {
     var width = dimensions[0];
     var height = dimensions[1];
@@ -71,6 +80,8 @@ const GridCellTypeEnum = Object.freeze({
     PathIntermediate: 3,
     PathSource: 4,
     PathDestination: 5,
+
+    PathItemToPickUp: 6,
 });
 
 function GridWarehouse(warehouseId) {
@@ -107,23 +118,70 @@ function GridWarehouse(warehouseId) {
     this.findPath = function (sourceCell, destinationCell) {
         var _this = this;
         return $.ajax({
-            url: '/api/warehouse/' + this.warehouseId + '/path/' + sourceCell + '/' + destinationCell + '/',
+            url: '/api/warehouse/' + this.warehouseId + '/find-path/',
+            method: 'POST',
+            data: JSON.stringify({
+                source: sourceCell,
+                destination: destinationCell,
+            }),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
         }).done(function (data) {
             var path = JSON.parse(data);
-            _this.lastPath = path;
 
-            for (var i = 0; i < _this.lastPath.length; i++) {
-                var pathCell = _this.lastPath[i];
+            for (var i = 0; i < path.length; i++) {
+                var pathCell = path[i];
 
                 var cellType;
 
                 if (i === 0) {
                     cellType = GridCellTypeEnum.PathSource;
-                } else if (i === _this.lastPath.length - 1) {
+                } else if (i === path.length - 1) {
                     cellType = GridCellTypeEnum.PathDestination;
                 } else {
                     cellType = GridCellTypeEnum.PathIntermediate;
                 }
+
+                _this.grid[pathCell[0]][pathCell[1]] = cellType;
+            }
+        });
+    };
+
+    this.findPickPath = function (sourceCell, destinationCell, itemsToPickUp) {
+        var _this = this;
+        return $.ajax({
+            url: '/api/warehouse/' + this.warehouseId + '/find-pick-path/',
+            method: 'POST',
+            data: JSON.stringify({
+                source: sourceCell,
+                destination: destinationCell,
+                items: itemsToPickUp,
+            }),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+        }).done(function (data) {
+            var path = data.path;
+            var items = data.items;
+
+            for (var i = 0; i < path.length; i++) {
+                var pathCell = path[i];
+
+                var cellType;
+
+                if (i === 0) {
+                    cellType = GridCellTypeEnum.PathSource;
+                } else if (i === path.length - 1) {
+                    cellType = GridCellTypeEnum.PathDestination;
+                } else if (arrayContains(items, pathCell, arraysEqual)){
+                    cellType = GridCellTypeEnum.PathItemToPickUp;
+                } else {
+                    cellType = GridCellTypeEnum.PathIntermediate;
+                }
+
+                console.info("Mark 1");
+                console.info(pathCell[0], pathCell[1]);
+                console.info(_this.grid[pathCell[0]][pathCell[1]]);
+                console.info("Mark 2");
 
                 _this.grid[pathCell[0]][pathCell[1]] = cellType;
             }
@@ -135,7 +193,7 @@ function GridWarehouse(warehouseId) {
         var cellDimensions = [50, 50];
 
         var gridWidth = cellDimensions[0] * gridWarehouse.dimensions[0];
-        var gridHeight = cellDimensions[1] * gridWarehouse.dimensions[1] ;
+        var gridHeight = cellDimensions[1] * gridWarehouse.dimensions[1];
 
         /**
          * Generates a 2D array of the same shape of grid containing all the data needed to render a D3 grid
@@ -226,6 +284,10 @@ function GridWarehouse(warehouseId) {
                         return "intermediate-cell";
                     case GridCellTypeEnum.PathDestination:
                         return "destination-cell";
+                    case GridCellTypeEnum.PathItemToPickUp:
+                        return "path-item-to-pick-up-cell";
+                    default:
+                        throw new Error("Unknown type");
 
                 }
             })
@@ -241,13 +303,14 @@ $(document).ready(function () {
     var sourceY = parseInt(getQueryStringParameterByName('sourceY'));
     var destinationX = parseInt(getQueryStringParameterByName('destinationX'));
     var destinationY = parseInt(getQueryStringParameterByName('destinationY'));
+    var itemsToPickUp = JSON.parse(getQueryStringParameterByName('itemsToPickUp'));
 
     $('#warehouseId').val(warehouseId);
     $('#sourceX').val(sourceX);
     $('#sourceY').val(sourceY);
     $('#destinationX').val(destinationX);
     $('#destinationY').val(destinationY);
-
+    $('#itemsToPickUp').val(JSON.stringify(itemsToPickUp));
 
     gridWarehouse = new GridWarehouse(warehouseId);
     gridWarehouse
@@ -255,11 +318,13 @@ $(document).ready(function () {
         .then(function () {
             gridWarehouse.render();
 
-            gridWarehouse.findPath([sourceX, sourceY], [destinationX, destinationY])
-                .then(function () {
-                    gridWarehouse.render();
-                });
-
+            if (itemsToPickUp) {
+                gridWarehouse.findPickPath([sourceX, sourceY], [destinationX, destinationY], itemsToPickUp)
+                    .then(gridWarehouse.render);
+            } else {
+                gridWarehouse.findPath([sourceX, sourceY], [destinationX, destinationY])
+                    .then(gridWarehouse.render);
+            }
         });
 
 });

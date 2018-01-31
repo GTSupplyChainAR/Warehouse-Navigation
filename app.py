@@ -1,7 +1,7 @@
 """
 Initializes server and exposes API endpoints
 """
-from flask import Flask
+from flask import Flask, request
 import networkx as nx
 from warehouse import get_simple_warehouse, get_larger_warehouse, get_georgia_tech_library_warehouse
 import ast
@@ -32,17 +32,37 @@ def get_warehouse(warehouse_id):
     })
 
 
-@app.route("/api/warehouse/<warehouse_id>/path/<from_node>/<to_node>/")
-def find_path(warehouse_id, from_node, to_node):
+@app.route("/api/warehouse/<warehouse_id>/find-path/", methods=['POST'])
+def find_path(warehouse_id):
     warehouse = WAREHOUSES[warehouse_id]
 
+    data = request.get_json()
+
     # Security risk!
-    from_node = ast.literal_eval(from_node)
-    to_node = ast.literal_eval(to_node)
+    from_node = data['source']
+    to_node = data['destination']
 
     path = warehouse.find_path(from_node, to_node)
 
     return json.dumps(path)
+
+
+@app.route("/api/warehouse/<warehouse_id>/find-pick-path/", methods=['POST'])
+def find_pick_path(warehouse_id):
+    warehouse = WAREHOUSES[warehouse_id]
+
+    data = request.get_json()
+
+    from_node = data['source']
+    to_node = data['destination']
+    intermediate_nodes = data['items']
+
+    pick_path = warehouse.find_pick_path(from_node, to_node, intermediate_nodes)
+
+    return json.dumps({
+        'items': list(intermediate_nodes),
+        'path': pick_path,
+    })
 
 
 if __name__ == '__main__':

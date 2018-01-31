@@ -15,11 +15,13 @@ class GridWarehouse(object):
         self.grid = grid
         self.graph = self._construct_graph()
     
-    def find_path(self, from_node, to_node):  # type: (PositionType, PositionType) -> []
+    def find_path(self, from_node, to_node):  # type: (PositionType, PositionType) -> [PositionType]
         return nx.shortest_path(self.graph, from_node, to_node)
 
-    def __str__(self):
+    def find_pick_path(self, from_node, to_node, intermediate_nodes): # type: (PositionType, PositionType, [PositionType]) -> [PositionType]
+        return [from_node] + list(intermediate_nodes) + [to_node]
 
+    def __str__(self):
         row_strings = []
         for column in self.grid:
             column_strings = []
@@ -31,7 +33,6 @@ class GridWarehouse(object):
                 else:
                     raise TypeError("Unknown cell type: %s" % type(cell))
             row_strings.append("\t".join(column_strings) + "\n")
-
         return \
             "Grid Warehouse (%d height x %d width)\n" % self.dimensions + \
             "".join(row_strings)
