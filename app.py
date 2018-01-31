@@ -3,7 +3,7 @@ Initializes server and exposes API endpoints
 """
 from flask import Flask
 import networkx as nx
-from warehouse import get_simple_warehouse, get_larger_warehouse
+from warehouse import get_simple_warehouse, get_larger_warehouse, get_georgia_tech_library_warehouse
 import ast
 import json
 
@@ -12,12 +12,12 @@ app = Flask(__name__)
 WAREHOUSES = {
     'simple': get_simple_warehouse(),
     'larger': get_larger_warehouse(),
+    'georgia-tech': get_georgia_tech_library_warehouse(),
 }
 
 
 @app.route("/")
 def index():
-    print("Index")
     return app.send_static_file('index.html')
 
 

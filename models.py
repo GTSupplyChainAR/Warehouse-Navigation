@@ -4,6 +4,7 @@ import networkx as nx
 
 PositionType = typing.Tuple[int, int]
 
+
 class GridWarehouse(object):
     dimensions = None  # type: PositionType
     grid = None  # type: [[GridWarehouseCell]]

@@ -4,19 +4,75 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/style.css">
     <title>Grid Warehouses</title>
 </head>
 <body>
 
 <div class="container">
+    <div class="row">
+        <div class="col">
+            <h1>Grid Warehouse</h1>
 
-    <div class="col-md-2"></div>
-    <div class="col-md-8">
-        <h1>Grid Warehouse</h1>
-        <div id="grid"></div>
+            <form method="GET">
+                <div class="form-group">
+                    <label for="warehouseId">Warehouse ID</label>
+                    <select name="warehouseId"
+                            id="warehouseId"
+                            class="custom-select">
+                        <option value="simple">Simple</option>
+                        <option value="larger">Larger</option>
+                        <option value="georgia-tech">Georgia Tech Library</option>
+                    </select>
+                </div>
+
+                <hr/>
+
+                <div class="form-group">
+                    <label for="sourceX">Source X</label>
+                    <input type="number"
+                           class="form-control"
+                           id="sourceX"
+                           name="sourceX"/>
+                </div>
+
+                <div class="form-group">
+                    <label for="sourceY">Source Y</label>
+                    <input type="number"
+                           class="form-control"
+                           id="sourceY"
+                           name="sourceY"/>
+                </div>
+
+                <hr/>
+
+                <div class="form-group">
+                    <label for="destinationX">Destination X</label>
+                    <input type="number"
+                           class="form-control"
+                           id="destinationX"
+                           name="destinationX"/>
+                </div>
+
+                <div class="form-group">
+                    <label for="destinationY">Destination Y</label>
+                    <input type="number"
+                           class="form-control"
+                           id="destinationY"
+                           name="destinationY"/>
+                </div>
+
+                <hr/>
+
+                <button class="btn btn-block btn-outline-primary"
+                        type="submit">Render</button>
+
+            </form>
+        </div>
+        <div class="col">
+            <div id="grid"></div>
+        </div>
     </div>
-    <div class="col-md-2"></div>
-
 </div>
 
 <script src="https://code.jquery.com/jquery-3.2.1.js"></script>

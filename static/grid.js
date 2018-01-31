@@ -1,5 +1,16 @@
 // Based on: https://bl.ocks.org/cagrimmett/07f8c8daea00946b9e704e3efcbd5739
 
+// Source: https://stackoverflow.com/a/901144
+function getQueryStringParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
 function arraysEqual(a, b) {
     if (a === b) return true;
     if (a === null || b === null) return false;
@@ -13,13 +24,15 @@ function arraysEqual(a, b) {
 }
 
 function initializeGrid(dimensions, defaultData) {
+    var width = dimensions[0];
+    var height = dimensions[1];
     var grid = [];
-    for (var i = 0; i < dimensions[0]; i++) {
-        var row = [];
-        for (var j = 0; j < dimensions[1]; j++) {
-            row.push(defaultData);
+    for (var colNum = 0; colNum < width; colNum++) {
+        var column = [];
+        for (var rowNum = 0; rowNum < height; rowNum++) {
+            column.push(defaultData);
         }
-        grid.push(row);
+        grid.push(column);
     }
     return grid;
 }
@@ -118,117 +131,134 @@ function GridWarehouse(warehouseId) {
     };
 
     this.render = function () {
-// height, width
-            var cellDimensions = [50, 50];
+// width, height
+        var cellDimensions = [50, 50];
 
-            /**
-             * Generates a 2D array of the same shape of grid containing all the data needed to render a D3 grid
-             * @param grid - A grid of booleans indicating if a cell is traversable (true) or not (false)
-             * @param cellDimensions - The pixel height, width of a cell in the grid
-             */
-            function getGridDataForD3(grid, cellDimensions) {
-                var data = new Array();
-                // starting xpos and ypos at 1 so the stroke will show when we make the grid below
-                var xPosition = 1;
-                var yPosition = 1;
-                // Dimensions of the cell in pixels
-                var cellHeight = cellDimensions[0];
-                var cellWidth = cellDimensions[1];
+        var gridWidth = cellDimensions[0] * gridWarehouse.dimensions[0];
+        var gridHeight = cellDimensions[1] * gridWarehouse.dimensions[1] ;
 
-                var numRows = grid.length;
-                var numCols = grid[0].length;
+        /**
+         * Generates a 2D array of the same shape of grid containing all the data needed to render a D3 grid
+         * @param grid - A grid of enums indicating what a cell is
+         * @param cellDimensions - The pixel height, width of a cell in the grid
+         */
+        function getGridDataForD3(grid, cellDimensions) {
+            var numCols = grid.length;
+            var numRows = grid[0].length;
 
-                // iterate for rows
+            var data = initializeGrid([numCols, numRows]);
+            // Dimensions of the cell in pixels
+            var cellWidth = cellDimensions[0];
+            var cellHeight = cellDimensions[1];
+
+            var xPosition = 0;
+            var yPosition = gridHeight - cellHeight;
+
+            // iterate for rows
+            for (var column = 0; column < numCols; column++) {
+                // iterate for cells/columns inside rows
                 for (var row = 0; row < numRows; row++) {
-                    data.push(new Array());
+                    data[column][row] = {
+                        x: xPosition,
+                        y: yPosition,
+                        width: cellWidth,
+                        height: cellHeight,
+                        gridCellType: grid[column][row]
+                    };
 
-                    // iterate for cells/columns inside rows
-                    for (var column = 0; column < numCols; column++) {
-                        data[row].push({
-                            x: xPosition,
-                            y: yPosition,
-                            width: cellWidth,
-                            height: cellHeight,
-                            gridCellType: grid[row][column]
-                        });
-
-                        // increment the x position. I.e. move it over by 50 (width variable)
-                        xPosition += cellWidth;
-                    }
-                    // reset the x position after a row is complete
-                    xPosition = 1;
-                    // increment the y position for the next row. Move it down 50 (height variable)
-                    yPosition += cellHeight;
+                    yPosition -= cellHeight;
                 }
-                return data;
+                // reset the x position after a row is complete
+                yPosition = gridHeight - cellHeight;
+                // increment the y position for the next row. Move it down 50 (height variable)
+                xPosition += cellWidth;
             }
+            return data;
+        }
 
 // Render Grid with D3
 
-            var oldGrid = d3.select("#grid")
-                .selectAll("*")
-                .remove();
+        var oldGrid = d3.select("#grid")
+            .selectAll("*")
+            .remove();
 
-            var grid = d3.select("#grid")
-                .append("svg")
-                .attr("height", cellDimensions[0] * gridWarehouse.dimensions[0] + 10 + "px")
-                .attr("width", cellDimensions[1] * gridWarehouse.dimensions[1] + 10 + "px");
+        var grid = d3.select("#grid")
+            .append("svg")
+            .attr("height", gridHeight + "px")
+            .attr("width", gridWidth + "px");
 
-            var row = grid.selectAll(".row")
-                .data(getGridDataForD3(gridWarehouse.grid, cellDimensions))
-                .enter().append("g")
-                .attr("class", "row");
+        var d3Data = getGridDataForD3(gridWarehouse.grid, cellDimensions);
+        console.log(d3Data);
 
-            var column = row.selectAll(".square")
-                .data(function (d) {
-                    return d;
-                })
-                .enter().append("rect")
-                .attr("class", "square")
-                .attr("x", function (d) {
-                    return d.x;
-                })
-                .attr("y", function (d) {
-                    return d.y;
-                })
-                .attr("width", function (d) {
-                    return d.width;
-                })
-                .attr("height", function (d) {
-                    return d.height;
-                })
-                .attr("fill", function (d) {
-                    switch (d.gridCellType) {
-                        case GridCellTypeEnum.Navigable:
-                            return "#d9d9d9";
-                        case GridCellTypeEnum.Shelving:
-                            return "#676767";
-                        case GridCellTypeEnum.PathSource:
-                            return "#7eff00";
-                        case GridCellTypeEnum.PathIntermediate:
-                            return "#00cbff";
-                        case GridCellTypeEnum.PathDestination:
-                            return "#ff2b00";
+        var column = grid.selectAll(".col")
+            .data(d3Data)
+            .enter()
+            .append("g")
+            .attr("class", "col");
 
-                    }
-                })
-                .style("stroke", "#222");
+        var row = column.selectAll(".square")
+            .data(function (d) {
+                return d;
+            })
+            .enter().append("rect")
+            .attr("class", "square")
+            .attr("x", function (d) {
+                return d.x;
+            })
+            .attr("y", function (d) {
+                return d.y;
+            })
+            .attr("width", function (d) {
+                return d.width;
+            })
+            .attr("height", function (d) {
+                return d.height;
+            })
+            .attr("class", function (d) {
+                switch (d.gridCellType) {
+                    case GridCellTypeEnum.Navigable:
+                        return "navigable-cell";
+                    case GridCellTypeEnum.Shelving:
+                        return "shelving-cell";
+                    case GridCellTypeEnum.PathSource:
+                        return "source-cell";
+                    case GridCellTypeEnum.PathIntermediate:
+                        return "intermediate-cell";
+                    case GridCellTypeEnum.PathDestination:
+                        return "destination-cell";
+
+                }
+            })
+            .style("stroke", "#222");
     };
 }
 
 var gridWarehouse;
 $(document).ready(function () {
 
-    gridWarehouse = new GridWarehouse('larger');
+    var warehouseId = getQueryStringParameterByName('warehouseId');
+    var sourceX = parseInt(getQueryStringParameterByName('sourceX'));
+    var sourceY = parseInt(getQueryStringParameterByName('sourceY'));
+    var destinationX = parseInt(getQueryStringParameterByName('destinationX'));
+    var destinationY = parseInt(getQueryStringParameterByName('destinationY'));
+
+    $('#warehouseId').val(warehouseId);
+    $('#sourceX').val(sourceX);
+    $('#sourceY').val(sourceY);
+    $('#destinationX').val(destinationX);
+    $('#destinationY').val(destinationY);
+
+
+    gridWarehouse = new GridWarehouse(warehouseId);
     gridWarehouse
         .loadWarehouse()
         .then(function () {
             gridWarehouse.render();
 
-            gridWarehouse.findPath([0, 0], [3, 3])
+            gridWarehouse.findPath([sourceX, sourceY], [destinationX, destinationY])
                 .then(function () {
-                gridWarehouse.render();
-            });
+                    gridWarehouse.render();
+                });
 
         });
 
