@@ -11,6 +11,10 @@ function getQueryStringParameterByName(name, url) {
     return decodeURIComponent(results[2].replace(/\+/g, " "));
 }
 
+function handleServerError(error) {
+    alert("Failure!");
+}
+
 function arraysEqual(a, b) {
     if (a === b) return true;
     if (a === null || b === null) return false;
@@ -148,7 +152,7 @@ function GridWarehouse(warehouseId) {
 
                 _this.grid[pathCell[0]][pathCell[1]] = cellType;
             }
-        });
+        }).fail(handleServerError);
     };
 
     this.render = function () {
@@ -280,7 +284,6 @@ $(document).ready(function () {
         .loadWarehouse()
         .then(function () {
             // gridWarehouse.render();
-
             gridWarehouse.findPickPath([sourceX, sourceY], [destinationX, destinationY], itemsToPickUp)
                 .then(gridWarehouse.render);
         });
