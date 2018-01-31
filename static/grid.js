@@ -88,14 +88,23 @@ const GridCellTypeEnum = Object.freeze({
     PathItemToPickUp: 6,
 });
 
+const GridCellSymbolEnum = Object.freeze({
+    ArrowNorth: 1,
+    ArrowEast: 2,
+    ArrowSouth: 3,
+    ArrowWest: 4,
+
+    ItemHere: 5,
+});
+
 function GridWarehouse(warehouseId) {
     this.warehouseId = warehouseId;
     this.dimensions = null;
     this.grid = null;
     this.graph = null;
 
-    // The last computed path
-    this.lastPath = null;
+    // The last computed path and items
+    this.activeOrderPickingSession = null;
 
     this.loadWarehouse = function () {
         var _this = this;
@@ -144,7 +153,7 @@ function GridWarehouse(warehouseId) {
                     cellType = GridCellTypeEnum.PathSource;
                 } else if (i === path.length - 1) {
                     cellType = GridCellTypeEnum.PathDestination;
-                } else if (arrayContains(items, pathCell, arraysEqual)){
+                } else if (arrayContains(items, pathCell, arraysEqual)) {
                     cellType = GridCellTypeEnum.PathItemToPickUp;
                 } else {
                     cellType = GridCellTypeEnum.PathIntermediate;
@@ -152,11 +161,17 @@ function GridWarehouse(warehouseId) {
 
                 _this.grid[pathCell[0]][pathCell[1]] = cellType;
             }
+
+            _this.activeOrderPickingSession = {
+                path: path,
+                items: items,
+            }
+
         }).fail(handleServerError);
     };
 
     this.render = function () {
-// width, height
+        // width, height
         var cellDimensions = [50, 50];
 
         var gridWidth = cellDimensions[0] * gridWarehouse.dimensions[0];
@@ -176,46 +191,66 @@ function GridWarehouse(warehouseId) {
             var cellWidth = cellDimensions[0];
             var cellHeight = cellDimensions[1];
 
-            var xPosition = 0;
-            var yPosition = gridHeight - cellHeight;
-
             // iterate for rows
             for (var column = 0; column < numCols; column++) {
                 // iterate for cells/columns inside rows
                 for (var row = 0; row < numRows; row++) {
                     data[column][row] = {
-                        x: xPosition,
-                        y: yPosition,
+                        x: cellWidth * column,
+                        y: (gridHeight - cellHeight) - cellHeight * row,
                         width: cellWidth,
                         height: cellHeight,
                         gridCellType: grid[column][row]
                     };
-
-                    yPosition -= cellHeight;
                 }
-                // reset the x position after a row is complete
-                yPosition = gridHeight - cellHeight;
-                // increment the y position for the next row. Move it down 50 (height variable)
-                xPosition += cellWidth;
             }
             return data;
         }
 
-// Render Grid with D3
+        function getArrowDataForD3(pickPath, items) {
+            var symbols = [];
 
-        var oldGrid = d3.select("#grid")
-            .selectAll("*")
-            .remove();
+            for (var i = 1; i < pickPath.length; i++) {
+                var symbol = {};
 
-        var grid = d3.select("#grid")
-            .append("svg")
+                var current = pickPath[i - 1];
+                var next = pickPath[i];
+
+                if (current[0] < next[0]) {
+                    symbol.symbol = GridCellSymbolEnum.ArrowEast;
+                } else if (current[0] > next[0]) {
+                    symbol.symbol = GridCellSymbolEnum.ArrowWest;
+                } else if (current[1] < next[1]) {
+                    symbol.symbol = GridCellTypeEnum.ArrowNorth;
+                } else if (current[1] > next[1]) {
+                    symbol.symbol = GridCellTypeEnum.ArrowSouth;
+                } else {
+                    throw new Error("Duplicate cell in path found.")
+                }
+
+                symbol.startX = cellDimensions[0] * current[0] + cellDimensions[0] / 2;
+                symbol.startY = (gridHeight - cellDimensions[1]) - cellDimensions[1] * current[1] + cellDimensions[1] / 2;
+
+                symbol.endX = cellDimensions[0] * next[0] + cellDimensions[0] / 2;
+                symbol.endY = (gridHeight - cellDimensions[1]) - cellDimensions[1] * next[1] + cellDimensions[1] / 2;
+
+                symbols.push(symbol);
+            }
+
+            return symbols;
+        }
+
+        // Render Grid with D3
+
+        var svg = d3.select("svg");
+        svg
             .attr("height", gridHeight + "px")
             .attr("width", gridWidth + "px");
 
         var d3Data = getGridDataForD3(gridWarehouse.grid, cellDimensions);
         console.log(d3Data);
 
-        var column = grid.selectAll(".col")
+        var column = svg.selectAll(".col")
             .data(d3Data)
             .enter()
             .append("g")
@@ -225,7 +260,8 @@ function GridWarehouse(warehouseId) {
             .data(function (d) {
                 return d;
             })
-            .enter().append("rect")
+            .enter()
+            .append("rect")
             .attr("class", "square")
             .attr("x", function (d) {
                 return d.x;
@@ -255,10 +291,23 @@ function GridWarehouse(warehouseId) {
                         return "path-item-to-pick-up-cell";
                     default:
                         throw new Error("Unknown type");
-
                 }
             })
             .style("stroke", "#222");
+
+        var symbolData = getArrowDataForD3(gridWarehouse.activeOrderPickingSession.path, gridWarehouse.activeOrderPickingSession.items);
+        column.selectAll(".square")
+            .data(symbolData)
+            .enter()
+            .append('line')
+            .attr('x1', function (d) {return d.startX})
+            .attr('y1', function (d) {return d.startY})
+            .attr('x2', function (d) {return d.endX})
+            .attr('y2', function (d) {return d.endY})
+            .attr("stroke", "#f00")
+            .attr("stroke-width", 2)
+            .attr('marker-start', 'url(#arrow)');
+
     };
 }
 

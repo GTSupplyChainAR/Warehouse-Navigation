@@ -82,7 +82,8 @@
                 <hr/>
 
                 <button class="btn btn-block btn-outline-primary"
-                        type="submit">Render</button>
+                        type="submit">Render
+                </button>
 
             </form>
 
@@ -92,7 +93,22 @@
 
             <br/>
 
-            <div id="grid"></div>
+            <!-- Markup for the head of the arrow -->
+            <svg>
+                <defs>
+                    <marker
+                            id="arrow"
+                            markerUnits="strokeWidth"
+                            markerWidth="12"
+                            markerHeight="12"
+                            viewBox="0 0 12 12"
+                            refX="6"
+                            refY="6"
+                            orient="auto">
+                        <path d="M2,2 L10,6 L2,10 L6,6 L2,2" style="fill: #f00;"></path>
+                    </marker>
+                </defs>
+            </svg>
         </div>
     </div>
 </div>
