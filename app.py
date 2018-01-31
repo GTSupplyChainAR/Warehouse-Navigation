@@ -53,9 +53,11 @@ def find_pick_path(warehouse_id):
 
     data = request.get_json()
 
-    from_node = data['source']
-    to_node = data['destination']
+    from_node = tuple(data['source'])
+    to_node = tuple(data['destination'])
     intermediate_nodes = data['items']
+
+    intermediate_nodes = [tuple(node) for node in intermediate_nodes]
 
     pick_path = warehouse.find_pick_path(from_node, to_node, intermediate_nodes)
 

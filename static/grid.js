@@ -115,38 +115,6 @@ function GridWarehouse(warehouseId) {
         });
     };
 
-    this.findPath = function (sourceCell, destinationCell) {
-        var _this = this;
-        return $.ajax({
-            url: '/api/warehouse/' + this.warehouseId + '/find-path/',
-            method: 'POST',
-            data: JSON.stringify({
-                source: sourceCell,
-                destination: destinationCell,
-            }),
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-        }).done(function (data) {
-            var path = JSON.parse(data);
-
-            for (var i = 0; i < path.length; i++) {
-                var pathCell = path[i];
-
-                var cellType;
-
-                if (i === 0) {
-                    cellType = GridCellTypeEnum.PathSource;
-                } else if (i === path.length - 1) {
-                    cellType = GridCellTypeEnum.PathDestination;
-                } else {
-                    cellType = GridCellTypeEnum.PathIntermediate;
-                }
-
-                _this.grid[pathCell[0]][pathCell[1]] = cellType;
-            }
-        });
-    };
-
     this.findPickPath = function (sourceCell, destinationCell, itemsToPickUp) {
         var _this = this;
         return $.ajax({
@@ -177,11 +145,6 @@ function GridWarehouse(warehouseId) {
                 } else {
                     cellType = GridCellTypeEnum.PathIntermediate;
                 }
-
-                console.info("Mark 1");
-                console.info(pathCell[0], pathCell[1]);
-                console.info(_this.grid[pathCell[0]][pathCell[1]]);
-                console.info("Mark 2");
 
                 _this.grid[pathCell[0]][pathCell[1]] = cellType;
             }
@@ -316,15 +279,10 @@ $(document).ready(function () {
     gridWarehouse
         .loadWarehouse()
         .then(function () {
-            gridWarehouse.render();
+            // gridWarehouse.render();
 
-            if (itemsToPickUp) {
-                gridWarehouse.findPickPath([sourceX, sourceY], [destinationX, destinationY], itemsToPickUp)
-                    .then(gridWarehouse.render);
-            } else {
-                gridWarehouse.findPath([sourceX, sourceY], [destinationX, destinationY])
-                    .then(gridWarehouse.render);
-            }
+            gridWarehouse.findPickPath([sourceX, sourceY], [destinationX, destinationY], itemsToPickUp)
+                .then(gridWarehouse.render);
         });
 
 });

@@ -18,8 +18,16 @@ class GridWarehouse(object):
     def find_path(self, from_node, to_node):  # type: (PositionType, PositionType) -> [PositionType]
         return nx.shortest_path(self.graph, from_node, to_node)
 
-    def find_pick_path(self, from_node, to_node, intermediate_nodes): # type: (PositionType, PositionType, [PositionType]) -> [PositionType]
-        return [from_node] + list(intermediate_nodes) + [to_node]
+    def find_pick_path(self, from_node, to_node, intermediate_nodes):  # type: (PositionType, PositionType, [PositionType]) -> [PositionType]
+        pick_path = [from_node]
+        for node in intermediate_nodes + [to_node]:
+            shortest_path = nx.shortest_path(
+                G=self.graph,
+                source=pick_path[len(pick_path) - 1],
+                target=node,
+            )
+            pick_path += shortest_path[1:]
+        return pick_path
 
     def __str__(self):
         row_strings = []
