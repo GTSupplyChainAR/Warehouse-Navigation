@@ -3,9 +3,7 @@ import typing
 
 def init_grid(dimensions):  # type: (typing.Tuple[int, int]) -> [[None]]
     """
-    Creates grid (width, height) dimensions.
-    :param dimensions:
-    :return:
+    Creates grid in (width, height) dimensions.
     """
     width, height = dimensions
     grid = []

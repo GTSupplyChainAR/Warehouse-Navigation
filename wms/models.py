@@ -20,9 +20,10 @@ class GridWarehouse(object):
     def find_path(self, from_node, to_node):  # type: (PositionType, PositionType) -> [PositionType]
         return nx.shortest_path(self.graph, from_node, to_node)
 
-    def find_pick_path(self, from_node, intermediate_nodes):  # type: (PositionType, PositionType, [PositionType]) -> [PositionType]
+    def find_pick_path(self, from_node, intermediate_nodes):
+        # type: (PositionType, PositionType, [PositionType]) -> [PositionType]
 
-        # Create a graph on the nodes in this order (removes all nodes from graph not in this path)
+        # 1. Create a graph on the nodes in this order (removes all nodes from graph not in this path)
         nodes = [from_node] + intermediate_nodes
         G_tsp = nx.Graph()
         for node in nodes:
@@ -31,21 +32,32 @@ class GridWarehouse(object):
         for idx_i, i in enumerate(nodes):
             for idx_j, j in enumerate(nodes):
                 if i is not j:
-                    G_tsp.add_edge(i, j, weight=manhattan_distance(i, j))
+                    G_tsp.add_edge(i, j, weight=self.distance(i, j))
 
-        # Compute the TSP
+        # 2. Compute the TSP
         tsp_tour = tsp_circuit(G_tsp, from_node)
         if tsp_tour is None:
-            raise ValueError()
+            raise ValueError("Couldn't find picking path.")
 
-        # Now, re-introduce the intermediate nodes
+        # 3. Now, re-introduce the intermediate nodes to compute the real path in the warehouse
         final_path = [tsp_tour[0]]
-        for next_node in tsp_tour[1:]:
-            current_node = final_path[-1]
-            path_to_next_node = nx.shortest_path(self.graph, current_node, next_node)[1:]
-            final_path += path_to_next_node
+        for next_cell in tsp_tour[1:]:
+            # Get the last cell of the path
+            current_cell = final_path[-1]
+            # Find the path to the next node (remove the first element with is equal to current_node)
+            path_to_next_cell = nx.shortest_path(self.graph, current_cell, next_cell)[1:]
+            # Add in all cells from the path to the next cell
+            for path_cell in path_to_next_cell:
+                final_path.append(path_cell)
 
         return final_path
+
+
+    def distance(self, from_cell, to_cell):
+        """
+        Admissible distance heuristic for this warehouse
+        """
+        return manhattan_distance(from_cell, to_cell)
 
     def __str__(self):
         row_strings = []
@@ -129,11 +141,12 @@ class Direction(object):
 
 
 class ShelvingCell(GridWarehouseCell):
-    item = None  # type: Item
+    items = None  # type: [Item]
     direction = None  # type: Direction
 
-    def __init__(self, direction):
+    def __init__(self, direction, items=None):
         self.direction = direction
+        self.items = items or []
 
 
 class NavigableTileCell(GridWarehouseCell):
@@ -143,3 +156,7 @@ class NavigableTileCell(GridWarehouseCell):
 class Item(object):
     name = None  # type: str
     rfid = None  # type: str
+
+    def __init__(self, name, rfid):
+        self.name = name
+        self.rfid = rfid

@@ -1,27 +1,10 @@
+"""
+Contains layouts for different grid warehouses
+"""
+
 from models import GridWarehouse, NavigableTileCell, ShelvingCell, Direction
 import utils
 import copy
-
-"""
-
-A simple warehouse layout with 16 cells, 4 shelves, and 12 navigable cells (graph nodes).
-
-Top-left cell is at position (0, 3).
-Top-right cell is at position (3, 3).
-Bottom-left cell is at position (0, 0).
-Bottom-right cell is at position (3, 0).
-
------------------
-|   |   |   |   |
------------------
-|   | x | x |   |
------------------
-|   | x | x |   |
------------------
-|   |   |   |   |
------------------
-
-"""
 
 
 def get_simple_warehouse():
