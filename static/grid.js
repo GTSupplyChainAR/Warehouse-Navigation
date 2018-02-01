@@ -50,6 +50,17 @@ function initializeGrid(dimensions, defaultData) {
     return grid;
 }
 
+const GridCellTypeEnum = Object.freeze({
+    Navigable: 1,
+    Shelving: 2,
+
+    PathIntermediate: 3,
+    PathSource: 4,
+    PathDestination: 5,
+
+    PathItemToPickUp: 6,
+});
+
 function Graph(nodeLinkData) {  // nodeLinkData from Python's networkx.node_link_data
     this.nodes = [];
     this.adjacencyList = {};
@@ -76,26 +87,6 @@ function Graph(nodeLinkData) {  // nodeLinkData from Python's networkx.node_link
         this.adjacencyList[link.target].push(link.source);
     }
 }
-
-const GridCellTypeEnum = Object.freeze({
-    Navigable: 1,
-    Shelving: 2,
-
-    PathIntermediate: 3,
-    PathSource: 4,
-    PathDestination: 5,
-
-    PathItemToPickUp: 6,
-});
-
-const GridCellSymbolEnum = Object.freeze({
-    ArrowNorth: 1,
-    ArrowEast: 2,
-    ArrowSouth: 3,
-    ArrowWest: 4,
-
-    ItemHere: 5,
-});
 
 function GridWarehouse(warehouseId) {
     this.warehouseId = warehouseId;
@@ -128,14 +119,13 @@ function GridWarehouse(warehouseId) {
         });
     };
 
-    this.findPickPath = function (sourceCell, destinationCell, itemsToPickUp) {
+    this.findPickPath = function (sourceCell, itemsToPickUp) {
         var _this = this;
         return $.ajax({
             url: '/api/warehouse/' + this.warehouseId + '/find-pick-path/',
             method: 'POST',
             data: JSON.stringify({
                 source: sourceCell,
-                destination: destinationCell,
                 items: itemsToPickUp,
             }),
             contentType: "application/json; charset=utf-8",
@@ -215,18 +205,6 @@ function GridWarehouse(warehouseId) {
 
                 var current = pickPath[i - 1];
                 var next = pickPath[i];
-
-                if (current[0] < next[0]) {
-                    symbol.symbol = GridCellSymbolEnum.ArrowEast;
-                } else if (current[0] > next[0]) {
-                    symbol.symbol = GridCellSymbolEnum.ArrowWest;
-                } else if (current[1] < next[1]) {
-                    symbol.symbol = GridCellTypeEnum.ArrowNorth;
-                } else if (current[1] > next[1]) {
-                    symbol.symbol = GridCellTypeEnum.ArrowSouth;
-                } else {
-                    throw new Error("Duplicate cell in path found.")
-                }
 
                 symbol.startX = cellDimensions[0] * current[0] + cellDimensions[0] / 2;
                 symbol.startY = (gridHeight - cellDimensions[1]) - cellDimensions[1] * current[1] + cellDimensions[1] / 2;
@@ -317,23 +295,18 @@ $(document).ready(function () {
     var warehouseId = getQueryStringParameterByName('warehouseId');
     var sourceX = parseInt(getQueryStringParameterByName('sourceX'));
     var sourceY = parseInt(getQueryStringParameterByName('sourceY'));
-    var destinationX = parseInt(getQueryStringParameterByName('destinationX'));
-    var destinationY = parseInt(getQueryStringParameterByName('destinationY'));
     var itemsToPickUp = JSON.parse(getQueryStringParameterByName('itemsToPickUp'));
 
     $('#warehouseId').val(warehouseId);
     $('#sourceX').val(sourceX);
     $('#sourceY').val(sourceY);
-    $('#destinationX').val(destinationX);
-    $('#destinationY').val(destinationY);
     $('#itemsToPickUp').val(JSON.stringify(itemsToPickUp));
 
     gridWarehouse = new GridWarehouse(warehouseId);
     gridWarehouse
         .loadWarehouse()
         .then(function () {
-            // gridWarehouse.render();
-            gridWarehouse.findPickPath([sourceX, sourceY], [destinationX, destinationY], itemsToPickUp)
+            gridWarehouse.findPickPath([sourceX, sourceY], itemsToPickUp)
                 .then(gridWarehouse.render);
         });
 

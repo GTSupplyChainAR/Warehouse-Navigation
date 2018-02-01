@@ -1,5 +1,7 @@
 import typing
 import networkx as nx
+from tsp import tsp_circuit
+from utils import manhattan_distance
 
 
 PositionType = typing.Tuple[int, int]
@@ -18,16 +20,32 @@ class GridWarehouse(object):
     def find_path(self, from_node, to_node):  # type: (PositionType, PositionType) -> [PositionType]
         return nx.shortest_path(self.graph, from_node, to_node)
 
-    def find_pick_path(self, from_node, to_node, intermediate_nodes):  # type: (PositionType, PositionType, [PositionType]) -> [PositionType]
-        pick_path = [from_node]
-        for node in intermediate_nodes + [to_node]:
-            shortest_path = nx.shortest_path(
-                G=self.graph,
-                source=pick_path[len(pick_path) - 1],
-                target=node,
-            )
-            pick_path += shortest_path[1:]
-        return pick_path
+    def find_pick_path(self, from_node, intermediate_nodes):  # type: (PositionType, PositionType, [PositionType]) -> [PositionType]
+
+        # Create a graph on the nodes in this order (removes all nodes from graph not in this path)
+        nodes = [from_node] + intermediate_nodes
+        G_tsp = nx.Graph()
+        for node in nodes:
+            G_tsp.add_node(node)
+        # Add edges into the graph corresponding to the manhattan distance between two points
+        for idx_i, i in enumerate(nodes):
+            for idx_j, j in enumerate(nodes):
+                if i is not j:
+                    G_tsp.add_edge(i, j, weight=manhattan_distance(i, j))
+
+        # Compute the TSP
+        tsp_tour = tsp_circuit(G_tsp, from_node)
+        if tsp_tour is None:
+            raise ValueError()
+
+        # Now, re-introduce the intermediate nodes
+        final_path = [tsp_tour[0]]
+        for next_node in tsp_tour[1:]:
+            current_node = final_path[-1]
+            path_to_next_node = nx.shortest_path(self.graph, current_node, next_node)[1:]
+            final_path += path_to_next_node
+
+        return final_path
 
     def __str__(self):
         row_strings = []
@@ -66,7 +84,7 @@ class GridWarehouse(object):
                 neighbor_coordinates = self._get_neighboring_navigation_cells(cell_coordinates)
 
                 for neighbor_cell_coordinate in neighbor_coordinates:  # type: typing.Tuple(int, int)
-                    graph.add_edge(cell_coordinates, neighbor_cell_coordinate)
+                    graph.add_edge(cell_coordinates, neighbor_cell_coordinate, weight=1)
 
         return graph
 
