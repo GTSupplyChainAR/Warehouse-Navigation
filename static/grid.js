@@ -185,9 +185,10 @@ function GridWarehouse(warehouseId) {
             for (var column = 0; column < numCols; column++) {
                 // iterate for cells/columns inside rows
                 for (var row = 0; row < numRows; row++) {
+                    var d3Coordinates = computeD3GridCoordinates([column, row]);
                     data[column][row] = {
-                        x: cellWidth * column,
-                        y: (gridHeight - cellHeight) - cellHeight * row,
+                        x: d3Coordinates[0],
+                        y: d3Coordinates[1],
                         width: cellWidth,
                         height: cellHeight,
                         gridCellType: grid[column][row]
@@ -195,6 +196,13 @@ function GridWarehouse(warehouseId) {
                 }
             }
             return data;
+        }
+
+        function computeD3GridCoordinates(coordinates) {
+            return [
+                cellDimensions[0] * coordinates[0],
+                (gridHeight - cellDimensions[1]) - cellDimensions[1] * coordinates[1],
+            ]
         }
 
         function getArrowDataForD3(pickPath, items) {
@@ -206,11 +214,13 @@ function GridWarehouse(warehouseId) {
                 var current = pickPath[i - 1];
                 var next = pickPath[i];
 
-                symbol.startX = cellDimensions[0] * current[0] + cellDimensions[0] / 2;
-                symbol.startY = (gridHeight - cellDimensions[1]) - cellDimensions[1] * current[1] + cellDimensions[1] / 2;
+                [symbol.startX, symbol.startY] = computeD3GridCoordinates(current);
+                [symbol.endX, symbol.endY] = computeD3GridCoordinates(next);
 
-                symbol.endX = cellDimensions[0] * next[0] + cellDimensions[0] / 2;
-                symbol.endY = (gridHeight - cellDimensions[1]) - cellDimensions[1] * next[1] + cellDimensions[1] / 2;
+                symbol.startX += cellDimensions[0] / 2;
+                symbol.startY += cellDimensions[1] / 2;
+                symbol.endX += cellDimensions[0] / 2;
+                symbol.endY += cellDimensions[1] / 2;
 
                 symbols.push(symbol);
             }
